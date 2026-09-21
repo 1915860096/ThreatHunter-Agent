@@ -1,0 +1,8 @@
+{
+  "case_id": "CASE-003",
+  "name": "DNS Beaconing",
+  "description": "Engineering workstation resolves the same external domain on a regular cadence while an unsigned script host keeps a short outbound session alive every few minutes.",
+  "difficulty": "medium",
+  "available_sources": ["endpoint", "network", "dns", "files"],
+  "initial_alert_id": "ALT-003"
+}

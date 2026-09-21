@@ -1,0 +1,46 @@
+[
+  {
+    "cti_id": "CTI-001",
+    "title": "Encoded PowerShell loader with second-stage download",
+    "summary": "Synthetic report: campaigns observed delivering a base64-encoded PowerShell stager from a look-alike update domain, followed by retrieval of a second-stage binary over TLS.",
+    "indicators": ["sync-update.example.net", "203.0.113.47", "41ed873f46200bd7de73ed506218a92672ab61e2c63a3f159193ef2d5a5ffc00"],
+    "malware_families": ["SyntheticLoader"],
+    "campaigns": ["SYNTH-CAMPAIGN-ALPHA"],
+    "technique_ids": ["T1059.001", "T1105"],
+    "source": "benchmark-ti",
+    "published_at": "2026-02-18T00:00:00Z"
+  },
+  {
+    "cti_id": "CTI-002",
+    "title": "LSASS memory dump followed by encrypted C2",
+    "summary": "Synthetic report: operators dump LSASS through a signed Microsoft binary, then reach a relay over a non-standard TLS port shortly after the dump completes.",
+    "indicators": ["192.0.2.88", "relay-sync.example.com", "8567a57f9eb9a126c75b01248c8a990d44299924422eb7a1ff5bb57d2ce58271"],
+    "malware_families": ["SyntheticStealer"],
+    "campaigns": ["SYNTH-CAMPAIGN-BETA"],
+    "technique_ids": ["T1003", "T1218.011"],
+    "source": "benchmark-ti",
+    "published_at": "2026-02-25T00:00:00Z"
+  },
+  {
+    "cti_id": "CTI-003",
+    "title": "DNS beaconing with fixed cadence",
+    "summary": "Synthetic report: implant resolves a hard-coded domain at a regular interval and follows each lookup with a short-lived outbound TLS session.",
+    "indicators": ["beacon.example.net", "198.51.100.23"],
+    "malware_families": ["SyntheticBeacon"],
+    "campaigns": ["SYNTH-CAMPAIGN-GAMMA"],
+    "technique_ids": ["T1071.004"],
+    "source": "benchmark-ti",
+    "published_at": "2026-03-01T00:00:00Z"
+  },
+  {
+    "cti_id": "CTI-004",
+    "title": "LOLBin download chain via certutil",
+    "summary": "Synthetic report: an archive is retrieved with the certutil URL cache option from a staging domain and unpacked in a user temporary directory.",
+    "indicators": ["download.example.org", "b0a67092402ff4696ca2ba4e1d84bae2207122f5dbe0f28d8442e5ee84b0f6b1"],
+    "malware_families": ["SyntheticDropper"],
+    "campaigns": ["SYNTH-CAMPAIGN-DELTA"],
+    "technique_ids": ["T1105", "T1059.001"],
+    "source": "benchmark-ti",
+    "published_at": "2026-03-04T00:00:00Z"
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "case_id": "CASE-008",
+  "expected_verdict": "inconclusive",
+  "expected_iocs": [
+    {"indicator": "d1f68046f63004fe547db9f0b72f29c82a28de72da70601c909eabda75bf2ede", "indicator_type": "sha256", "reputation": "unknown"},
+    {"indicator": "report.example.org", "indicator_type": "domain", "reputation": "unknown"}
+  ],
+  "expected_techniques": [],
+  "key_evidence": ["EPE-008-002", "EPE-008-003", "FILE-008-001", "DNS-008-001"],
+  "acceptable_evidence": ["EPE-008-004", "NET-008-002", "FILE-008-002", "FILE-008-003"],
+  "expected_investigation": {
+    "required_source_types": ["endpoint", "files", "ioc"],
+    "optional_source_types": ["network", "dns"]
+  },
+  "notes": "A script host runs an unsigned script from the user temporary directory and loads a library from the same folder, but the script has no hash or size, the signature state of the library is unavailable, the DNS lookup timed out, the only external flow record is partial and both indicators have unknown reputation. The evidence is deliberately insufficient for a benign or malicious verdict."
+}

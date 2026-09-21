@@ -1,0 +1,8 @@
+{
+  "case_id": "CASE-004",
+  "name": "LOLBin Download Chain",
+  "description": "HR workstation downloads an archive with a built-in Windows utility from an external staging domain, unpacks it in a user temporary directory and runs the extracted binary.",
+  "difficulty": "medium",
+  "available_sources": ["endpoint", "network", "dns", "files"],
+  "initial_alert_id": "ALT-004"
+}

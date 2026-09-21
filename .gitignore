@@ -30,10 +30,6 @@ logs/
 *.log
 evaluation/results/*
 !evaluation/results/.gitkeep
-datasets/cases/*
-!datasets/cases/.gitkeep
-datasets/knowledge/*
-!datasets/knowledge/.gitkeep
 
 # Docker
 pgdata/

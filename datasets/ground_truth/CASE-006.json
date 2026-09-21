@@ -1,0 +1,15 @@
+{
+  "case_id": "CASE-006",
+  "expected_verdict": "benign",
+  "expected_iocs": [
+    {"indicator": "36f4a708b7a3113f371d89e0391daddbf29e6d8d7a8a6624a7024fe6b55dbf6c", "indicator_type": "sha256", "reputation": "unknown"}
+  ],
+  "expected_techniques": [],
+  "key_evidence": ["EPE-006-004", "NET-006-002", "DNS-006-001", "FILE-006-001"],
+  "acceptable_evidence": ["EPE-006-003", "EPE-006-005", "EPE-006-006", "NET-006-004", "FILE-006-002"],
+  "expected_investigation": {
+    "required_source_types": ["endpoint", "network", "dns", "files", "ioc"],
+    "optional_source_types": ["cti", "attack"]
+  },
+  "notes": "The download comes from the corporate software distribution domain, the installer and its updater are validly signed, and the installer hash simply has no reputation entry yet. Unknown reputation must not be treated as malicious, so the verdict stays benign."
+}

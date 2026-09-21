@@ -1,0 +1,20 @@
+{
+  "alert_id": "ALT-008",
+  "timestamp": "2026-03-20T02:14:20Z",
+  "source": "edr",
+  "severity": "medium",
+  "event_type": "suspicious_script_execution",
+  "host": "ws-legal-009",
+  "user": "t.ibrahim",
+  "src_ip": "10.40.16.9",
+  "dst_ip": null,
+  "process_name": "powershell.exe",
+  "command_line": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\t.ibrahim\\AppData\\Local\\Temp\\diag.ps1",
+  "raw": {
+    "vendor_rule": "EDR-PS-0051",
+    "vendor_event_id": 4688,
+    "detection_confidence": "low",
+    "correlation_incomplete": true,
+    "correlation_window_seconds": 15
+  }
+}

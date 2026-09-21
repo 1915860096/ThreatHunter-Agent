@@ -1,0 +1,20 @@
+{
+  "alert_id": "ALT-003",
+  "timestamp": "2026-03-09T21:20:05Z",
+  "source": "dns-analytics",
+  "severity": "high",
+  "event_type": "periodic_dns_beacon",
+  "host": "ws-eng-318",
+  "user": "r.silva",
+  "src_ip": "10.40.18.18",
+  "dst_ip": "198.51.100.23",
+  "process_name": "wscript.exe",
+  "command_line": "wscript.exe C:\\Users\\r.silva\\AppData\\Roaming\\svc\\beacon.js",
+  "raw": {
+    "vendor_rule": "DNS-BEACON-0007",
+    "vendor_event_id": 3008,
+    "detection_confidence": "medium",
+    "observed_interval_seconds": 300,
+    "query_count": 5
+  }
+}

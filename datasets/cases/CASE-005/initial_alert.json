@@ -1,0 +1,20 @@
+{
+  "alert_id": "ALT-005",
+  "timestamp": "2026-03-16T10:05:20Z",
+  "source": "edr",
+  "severity": "medium",
+  "event_type": "suspicious_powershell_execution",
+  "host": "ws-fin-022",
+  "user": "it-admin",
+  "src_ip": "10.40.12.22",
+  "dst_ip": "10.30.8.15",
+  "process_name": "powershell.exe",
+  "command_line": "powershell.exe -NoP -ExecutionPolicy Bypass -File C:\\Windows\\CCM\\ScriptStore\\Invoke-Inventory.ps1",
+  "raw": {
+    "vendor_rule": "EDR-PS-0042",
+    "vendor_event_id": 4104,
+    "detection_confidence": "low",
+    "parent_process": "ccmexec.exe",
+    "maintenance_ticket": "CHG-2026-0311"
+  }
+}

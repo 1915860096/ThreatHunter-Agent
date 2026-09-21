@@ -1,0 +1,5 @@
+[
+  {"file_id": "FILE-007-001", "timestamp": "2026-03-19T02:50:00Z", "host": "dc-01", "path": "C:\\Windows\\System32\\winevt\\Logs\\Security.evtx", "file_name": "Security.evtx", "sha256": null, "size": 68157440, "signed": false, "signer": null, "source_url": null, "metadata": {"zone": "system", "log_source": "security"}},
+  {"file_id": "FILE-007-002", "timestamp": "2026-03-19T03:41:00Z", "host": "dc-01", "path": "C:\\Program Files\\CorpIT\\Audit\\signin-audit.exe", "file_name": "signin-audit.exe", "sha256": "5b3f4b1c9d2bc60d65073a0c0652e171d0a44a8e383f0044bdd881aa59bf20a9", "size": 204800, "signed": true, "signer": "Example Corp IT", "source_url": null, "metadata": {"zone": "internal", "created_by": "ccmexec.exe"}},
+  {"file_id": "FILE-007-003", "timestamp": "2026-03-19T06:20:00Z", "host": "dc-01", "path": "C:\\Windows\\Temp\\~DF9C43A1.tmp", "file_name": "~DF9C43A1.tmp", "sha256": null, "size": 4096, "signed": false, "signer": null, "source_url": null, "metadata": {"zone": "system-temp", "created_by": "lsass.exe"}}
+]

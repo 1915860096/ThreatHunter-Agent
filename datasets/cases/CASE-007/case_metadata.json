@@ -1,0 +1,8 @@
+{
+  "case_id": "CASE-007",
+  "name": "Suspicious Authentication",
+  "description": "Domain controller reports a burst of failed authentication attempts for one account followed by a successful logon, all originating from the same external address.",
+  "difficulty": "medium",
+  "available_sources": ["endpoint", "network", "dns", "files"],
+  "initial_alert_id": "ALT-007"
+}

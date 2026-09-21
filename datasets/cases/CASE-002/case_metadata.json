@@ -1,0 +1,8 @@
+{
+  "case_id": "CASE-002",
+  "name": "Credential Dumping Followed by C2",
+  "description": "Operations workstation shows suspicious access to the local credential store through a signed system binary, a staged library in the user temporary directory, and a subsequent encrypted outbound session.",
+  "difficulty": "medium",
+  "available_sources": ["endpoint", "network", "dns", "files"],
+  "initial_alert_id": "ALT-002"
+}

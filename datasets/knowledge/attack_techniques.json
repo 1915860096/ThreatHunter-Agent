@@ -1,0 +1,44 @@
+[
+  {
+    "technique_id": "T1059.001",
+    "name": "Command and Scripting Interpreter: PowerShell",
+    "description": "Adversaries may abuse PowerShell commands and scripts for execution, including encoded command lines that hide the script content.",
+    "tactics": ["execution"],
+    "keywords": ["powershell", "encodedcommand", "executionpolicy", "script"]
+  },
+  {
+    "technique_id": "T1105",
+    "name": "Ingress Tool Transfer",
+    "description": "Adversaries may transfer tools or other files from an external system into a compromised environment, often through built-in utilities.",
+    "tactics": ["command-and-control"],
+    "keywords": ["download", "certutil", "urlcache", "transfer", "second-stage"]
+  },
+  {
+    "technique_id": "T1003",
+    "name": "OS Credential Dumping",
+    "description": "Adversaries may attempt to dump credentials to obtain account login and credential material from the operating system or software.",
+    "tactics": ["credential-access"],
+    "keywords": ["lsass", "minidump", "comsvcs", "credential", "memory dump"]
+  },
+  {
+    "technique_id": "T1218.011",
+    "name": "System Binary Proxy Execution: Rundll32",
+    "description": "Adversaries may abuse rundll32.exe to proxy execution of malicious code, including exported functions of system and staged libraries.",
+    "tactics": ["defense-evasion"],
+    "keywords": ["rundll32", "proxy execution", "dll export", "signed binary"]
+  },
+  {
+    "technique_id": "T1071.004",
+    "name": "Application Layer Protocol: DNS",
+    "description": "Adversaries may communicate using the DNS application layer protocol to avoid detection by blending command and control traffic with existing network activity.",
+    "tactics": ["command-and-control"],
+    "keywords": ["dns", "beacon", "periodic query", "c2 channel"]
+  },
+  {
+    "technique_id": "T1110",
+    "name": "Brute Force",
+    "description": "Adversaries may use brute force techniques such as password guessing to gain access to accounts when passwords are unknown or when password hashes are obtained.",
+    "tactics": ["credential-access"],
+    "keywords": ["failed logon", "password guessing", "authentication failure", "burst"]
+  }
+]

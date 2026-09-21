@@ -1,0 +1,18 @@
+{
+  "case_id": "CASE-003",
+  "expected_verdict": "malicious",
+  "expected_iocs": [
+    {"indicator": "beacon.example.net", "indicator_type": "domain", "reputation": "malicious"},
+    {"indicator": "198.51.100.23", "indicator_type": "ipv4", "reputation": "malicious"}
+  ],
+  "expected_techniques": [
+    {"technique_id": "T1071.004", "required": true}
+  ],
+  "key_evidence": ["EPE-003-002", "DNS-003-002", "DNS-003-004", "DNS-003-006", "NET-003-002", "NET-003-004", "FILE-003-001"],
+  "acceptable_evidence": ["EPE-003-003", "EPE-003-005", "DNS-003-008", "NET-003-006", "FILE-003-002"],
+  "expected_investigation": {
+    "required_source_types": ["endpoint", "network", "dns", "ioc", "cti"],
+    "optional_source_types": ["files", "attack"]
+  },
+  "notes": "An unsigned script host resolves one external domain on a five minute cadence and opens a matching short TLS session each time; the domain and destination address have malicious reputation and match a synthetic DNS beaconing report."
+}

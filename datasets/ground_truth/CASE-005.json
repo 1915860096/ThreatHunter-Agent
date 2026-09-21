@@ -1,0 +1,16 @@
+{
+  "case_id": "CASE-005",
+  "expected_verdict": "benign",
+  "expected_iocs": [
+    {"indicator": "6d975ca782ba6c6583682d59ccf081c4afcc62314d48ab74f3fc27b186185494", "indicator_type": "sha256", "reputation": "benign"},
+    {"indicator": "management.example.org", "indicator_type": "domain", "reputation": "benign"}
+  ],
+  "expected_techniques": [],
+  "key_evidence": ["EPE-005-003", "NET-005-002", "DNS-005-001", "FILE-005-001"],
+  "acceptable_evidence": ["EPE-005-002", "EPE-005-004", "EPE-005-005", "FILE-005-002", "FILE-005-003"],
+  "expected_investigation": {
+    "required_source_types": ["endpoint", "network", "dns", "files", "ioc"],
+    "optional_source_types": ["cti", "attack"]
+  },
+  "notes": "Hard negative that mirrors CASE-001: the PowerShell command is started by the management agent during a maintenance window, the destination is an internal management server, the script and the inventory tool are signed and allow-listed as benign, and no malicious CTI association exists. No malicious indicator or technique may be reported."
+}

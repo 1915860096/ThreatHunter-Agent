@@ -1,0 +1,8 @@
+{
+  "case_id": "CASE-005",
+  "name": "Admin PowerShell Maintenance",
+  "description": "Finance workstation reports a hidden PowerShell execution started by the management agent during a scheduled maintenance window, with outbound traffic to an internal management server.",
+  "difficulty": "medium",
+  "available_sources": ["endpoint", "network", "dns", "files"],
+  "initial_alert_id": "ALT-005"
+}

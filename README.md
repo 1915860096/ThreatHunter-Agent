@@ -4,7 +4,8 @@
 
 ## 当前开发状态
 
-当前完成 **T01：项目骨架与工程环境初始化** 与 **T02：核心领域 Schema 与数据契约**。
+当前完成 **T01：项目骨架与工程环境初始化**、**T02：核心领域 Schema 与数据契约** 与
+**T03：安全调查 Benchmark V1**。
 
 已经具备的能力：
 
@@ -16,9 +17,12 @@
 - Pydantic v2 领域数据契约：告警、调查计划、工具调用、证据、结论、报告（含 ID 前缀、
   时区与各类一致性校验），供后续 Dataset / Tools / Evidence Store / RAG / MCP /
   LangGraph / Agent / Evaluation 共同复用
+- 8 个 Case 的调查 Benchmark：合成但真实的 telemetry、共享知识库、Evaluation-only
+  Ground Truth、数据集 Loader 与跨文件 Dataset Validation
 
 尚未实现（属于后续 Task）：Agent 编排、LangGraph、Tool Calling、RAG、MCP、
-LLM 调用、CTI / MITRE ATT&CK / IOC 分析、数据库业务表、前端界面。
+LLM 调用、真实安全工具、运行时 IOC / ATT&CK 分析（当前只有静态知识数据）、
+Evaluation metric 算法、数据库业务表、前端界面。
 
 本仓库当前不存在任何 AI 依赖，也不包含任何 API Key。
 
@@ -80,6 +84,90 @@ Copy-Item .env.example .env
   表示证据对结论的支持强度。本阶段只约束取值范围为 0~1，不实现置信度计算。
 - `malicious` / `suspicious` 的结论必须至少有一条 Evidence 支撑；`inconclusive` 允许没有证据。
 
+## 调查 Benchmark（T03）
+
+Benchmark 是 **synthetic-but-realistic**（合成但贴近真实）且 **deterministic** 的：
+所有 timestamp 都是固定时间的 UTC，事件 ID 与内容可复现，不存在随机生成。
+恶意/可疑公网地址只使用 RFC 5737 文档网段（`192.0.2.0/24`、`198.51.100.0/24`、
+`203.0.113.0/24`），域名只使用 `example.com` / `example.net` / `example.org`，
+内部流量使用 RFC 1918 私网地址，所有 SHA256 均为合成值，不含真实恶意基础设施。
+
+### 三个目录的职责
+
+| 目录 | 职责 | 可见性 |
+| --- | --- | --- |
+| `datasets/cases/` | 每个 Case 的 metadata、initial alert 与 telemetry（endpoint / network / dns / files） | Agent 运行时可见 |
+| `datasets/knowledge/` | 共享知识：IOC reputation、synthetic CTI 记录、本项目用到的 ATT&CK 子集 | Agent 运行时可见 |
+| `datasets/ground_truth/` | 期望判定、期望 IOC/Technique、key/acceptable evidence、期望调查来源 | **仅 Evaluation** |
+
+Ground Truth 只允许通过 `GroundTruthLoader` 读取；`BenchmarkLoader` 不提供任何
+Ground Truth 接口（没有 `load_ground_truth`，也没有会一并返回答案的 `load_everything`），
+这条边界由测试固定下来，而不是靠约定。
+
+### 8 个 Case
+
+| Case | 名称 | 难度 | Ground Truth | 说明 |
+| --- | --- | --- | --- | --- |
+| CASE-001 | Encoded PowerShell Download & Execute | easy | malicious | Office 文档触发 encoded PowerShell，下载脚本与二进制 |
+| CASE-002 | Credential Dumping Followed by C2 | medium | malicious | LSASS 凭据转储后连接外部 C2 |
+| CASE-003 | DNS Beaconing | medium | malicious | 固定 5 分钟间隔的 DNS beacon 与外联 |
+| CASE-004 | LOLBin Download Chain | medium | malicious | certutil 下载归档、解压并执行 |
+| CASE-005 | Admin PowerShell Maintenance | medium | benign | hard negative：与 CASE-001 表面相似，但为审批过的运维行为 |
+| CASE-006 | Developer Download / Hash False Positive | easy/medium | benign | 正常软件分发下载；未知 hash 不等于恶意 |
+| CASE-007 | Suspicious Authentication | medium | suspicious | 多次登录失败后成功登录，来自异常外部地址 |
+| CASE-008 | Incomplete Telemetry Investigation | hard | inconclusive | 证据故意不足，无法判定 benign / malicious |
+
+判定分布：malicious 4、benign 2、suspicious 1、inconclusive 1。
+每个 Case 都同时包含相关事件与合理的噪声事件（例如 `explorer.exe`、`chrome.exe`、
+`svchost.exe`、`Teams.exe` 的正常行为，正常 HTTPS 与内网流量）。
+
+### Telemetry 记录数
+
+| Case | Endpoint | Network | DNS | Files | 合计 |
+| --- | --- | --- | --- | --- | --- |
+| CASE-001 | 14 | 11 | 9 | 5 | 39 |
+| CASE-002 | 16 | 10 | 7 | 4 | 37 |
+| CASE-003 | 12 | 12 | 14 | 3 | 41 |
+| CASE-004 | 13 | 9 | 7 | 5 | 34 |
+| CASE-005 | 15 | 9 | 6 | 4 | 34 |
+| CASE-006 | 12 | 9 | 6 | 5 | 32 |
+| CASE-007 | 16 | 8 | 5 | 3 | 32 |
+| CASE-008 | 14 | 8 | 5 | 4 | 31 |
+| **合计** | **112** | **76** | **59** | **33** | **280** |
+
+共享知识：27 条 IOC reputation、4 条 synthetic CTI 记录、6 条 ATT&CK Technique。
+
+### 使用方式
+
+```python
+from app.benchmark import BenchmarkLoader, GroundTruthLoader, validate_dataset
+
+loader = BenchmarkLoader()                     # Agent 侧：只读 cases / knowledge
+alert = loader.load_initial_alert("CASE-001")  # 直接返回 T02 的 SecurityAlert
+events = loader.load_endpoint_events("CASE-001")
+iocs = loader.load_ioc_reputation_records()
+
+truth = GroundTruthLoader().load_ground_truth("CASE-001")   # 仅 Evaluation 使用
+
+report = validate_dataset()                    # 跨文件 Dataset Validation
+assert report.ok
+```
+
+`validate_dataset()` 校验 8 个 Case 是否齐全、metadata / alert / telemetry / ground truth
+是否合法、Ground Truth 引用的 `EPE-` / `NET-` / `DNS-` / `FILE-` ID 是否真实存在、
+期望 IOC 与 Technique 是否有数据或知识支撑、Case 内 ID 是否唯一、时间是否为 UTC、
+以及判定分布是否符合定义。
+
+### 数据集命令
+
+```powershell
+# 完整测试（含 Dataset Validation 与 Ground Truth 隔离测试）
+python -m pytest
+
+# 只跑数据集校验
+.\.venv\Scripts\python.exe -c "from app.benchmark import validate_dataset; r = validate_dataset(); print(r.ok, r.issues)"
+```
+
 ## 启动 FastAPI
 
 ```powershell
@@ -125,6 +213,7 @@ docker compose down
 
 ```text
 app/            应用代码（main.py 为 FastAPI 入口，core/config.py 为配置）
+  benchmark/    Benchmark 数据集 Schema、Loader 与 Dataset Validation
   agents/       Agent 相关代码（后续 Task）
   graph/        编排图（后续 Task）
   tools/        安全工具集成（后续 Task）
@@ -134,17 +223,18 @@ app/            应用代码（main.py 为 FastAPI 入口，core/config.py 为�
   db/           持久化层（后续 Task）
   schemas/      Pydantic v2 领域数据契约
   core/         配置与核心基础设施
-datasets/       本地数据集（cases 告警样本、knowledge 知识库）
+datasets/       本地数据集（cases 告警样本与 telemetry、knowledge 共享知识、ground_truth 评测答案）
 evaluation/     评测脚本与结果
 frontend/       前端入口（后续 Task）
 scripts/        运维 / 辅助脚本
-tests/          pytest 测试（tests/schemas 为领域契约测试）
+tests/          pytest 测试（tests/schemas 领域契约、tests/benchmark 数据集测试）
 ```
 
 ## Roadmap
 
 - T01 项目骨架与工程环境初始化（已完成）
 - T02 核心领域 Schema 与数据契约（已完成）
+- T03 安全调查 Benchmark V1（已完成：8 Case / telemetry / 共享知识 / Ground Truth / Loader / Dataset Validation）
 - 后续：告警数据模型与持久化
 - 后续：Agent 编排（LangGraph）与 Tool Calling
 - 后续：RAG 与 MCP 集成

@@ -1,0 +1,20 @@
+{
+  "alert_id": "ALT-006",
+  "timestamp": "2026-03-18T13:42:40Z",
+  "source": "edr",
+  "severity": "medium",
+  "event_type": "unknown_hash_execution",
+  "host": "ws-dev-104",
+  "user": "k.tanaka",
+  "src_ip": "10.40.14.4",
+  "dst_ip": "198.51.100.45",
+  "process_name": "vendor-setup.exe",
+  "command_line": "C:\\Users\\k.tanaka\\Downloads\\vendor-setup.exe /S",
+  "raw": {
+    "vendor_rule": "EDR-HASH-0009",
+    "vendor_event_id": 4688,
+    "detection_confidence": "low",
+    "hash_reputation": "unknown",
+    "download_url": "https://downloads.example.com/tools/vendor-setup.exe"
+  }
+}

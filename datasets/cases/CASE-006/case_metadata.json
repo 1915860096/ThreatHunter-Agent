@@ -1,0 +1,8 @@
+{
+  "case_id": "CASE-006",
+  "name": "Developer Download / Hash False Positive",
+  "description": "Developer workstation downloads a vendor installer from the corporate software distribution domain, then executes it; the file hash has no reputation data available yet.",
+  "difficulty": "easy/medium",
+  "available_sources": ["endpoint", "network", "dns", "files"],
+  "initial_alert_id": "ALT-006"
+}

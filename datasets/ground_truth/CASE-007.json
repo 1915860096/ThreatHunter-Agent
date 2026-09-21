@@ -1,0 +1,17 @@
+{
+  "case_id": "CASE-007",
+  "expected_verdict": "suspicious",
+  "expected_iocs": [
+    {"indicator": "192.0.2.77", "indicator_type": "ipv4", "reputation": "suspicious"}
+  ],
+  "expected_techniques": [
+    {"technique_id": "T1110", "required": false}
+  ],
+  "key_evidence": ["EPE-007-003", "EPE-007-009", "EPE-007-010", "NET-007-001", "NET-007-003"],
+  "acceptable_evidence": ["EPE-007-004", "EPE-007-005", "EPE-007-006", "EPE-007-007", "EPE-007-008", "NET-007-002", "DNS-007-002"],
+  "expected_investigation": {
+    "required_source_types": ["endpoint", "network", "ioc"],
+    "optional_source_types": ["dns", "files", "cti", "attack"]
+  },
+  "notes": "Seven failed authentications from one external address are followed by a successful logon for the same account. No malware, command and control traffic or process compromise is present anywhere in the telemetry, so the evidence supports suspicious at most - never malicious."
+}

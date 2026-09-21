@@ -1,0 +1,20 @@
+{
+  "case_id": "CASE-004",
+  "expected_verdict": "malicious",
+  "expected_iocs": [
+    {"indicator": "download.example.org", "indicator_type": "domain", "reputation": "malicious"},
+    {"indicator": "b0a67092402ff4696ca2ba4e1d84bae2207122f5dbe0f28d8442e5ee84b0f6b1", "indicator_type": "sha256", "reputation": "malicious"},
+    {"indicator": "c736532372459def8645707575c1a4811db9f9d0a45932612ee8398cbc2b7bf0", "indicator_type": "sha256", "reputation": "malicious"}
+  ],
+  "expected_techniques": [
+    {"technique_id": "T1105", "required": true},
+    {"technique_id": "T1059.001", "required": false}
+  ],
+  "key_evidence": ["EPE-004-003", "EPE-004-005", "EPE-004-007", "NET-004-002", "DNS-004-001", "FILE-004-001", "FILE-004-002"],
+  "acceptable_evidence": ["EPE-004-002", "EPE-004-004", "EPE-004-006", "NET-004-003", "FILE-004-003"],
+  "expected_investigation": {
+    "required_source_types": ["endpoint", "network", "dns", "files", "ioc"],
+    "optional_source_types": ["cti", "attack"]
+  },
+  "notes": "A built-in Windows utility retrieves an archive from an external staging domain, PowerShell expands it in the user temporary directory, and the extracted binary runs. Only behaviours visible in telemetry are labelled."
+}

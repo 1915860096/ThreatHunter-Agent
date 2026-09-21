@@ -1,0 +1,21 @@
+{
+  "alert_id": "ALT-007",
+  "timestamp": "2026-03-19T03:14:35Z",
+  "source": "identity-monitor",
+  "severity": "high",
+  "event_type": "suspicious_authentication_pattern",
+  "host": "dc-01",
+  "user": "m.dubois",
+  "src_ip": "192.0.2.77",
+  "dst_ip": "10.40.0.10",
+  "process_name": null,
+  "command_line": null,
+  "raw": {
+    "vendor_rule": "ID-AUTH-0033",
+    "vendor_event_id": 4625,
+    "detection_confidence": "medium",
+    "failed_attempts": 7,
+    "window_seconds": 900,
+    "logon_type": 10
+  }
+}

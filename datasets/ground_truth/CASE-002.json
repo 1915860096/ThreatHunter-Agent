@@ -1,0 +1,20 @@
+{
+  "case_id": "CASE-002",
+  "expected_verdict": "malicious",
+  "expected_iocs": [
+    {"indicator": "192.0.2.88", "indicator_type": "ipv4", "reputation": "malicious"},
+    {"indicator": "relay-sync.example.com", "indicator_type": "domain", "reputation": "malicious"},
+    {"indicator": "8567a57f9eb9a126c75b01248c8a990d44299924422eb7a1ff5bb57d2ce58271", "indicator_type": "sha256", "reputation": "malicious"}
+  ],
+  "expected_techniques": [
+    {"technique_id": "T1003", "required": true},
+    {"technique_id": "T1218.011", "required": true}
+  ],
+  "key_evidence": ["EPE-002-004", "EPE-002-005", "EPE-002-006", "EPE-002-007", "NET-002-003", "DNS-002-001", "FILE-002-001"],
+  "acceptable_evidence": ["EPE-002-003", "EPE-002-009", "NET-002-004", "FILE-002-002"],
+  "expected_investigation": {
+    "required_source_types": ["endpoint", "network", "dns", "files", "ioc"],
+    "optional_source_types": ["cti", "attack"]
+  },
+  "notes": "A signed system binary writes a credential store dump, a staged library in the user temporary directory runs shortly after, and the host reaches a non-standard TLS port on an external address with malicious reputation."
+}

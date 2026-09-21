@@ -1,0 +1,8 @@
+{
+  "case_id": "CASE-008",
+  "name": "Incomplete Telemetry Investigation",
+  "description": "Legal workstation reports a script host running an unsigned script from the user temporary directory; network, DNS and file telemetry for the detection window are only partially available.",
+  "difficulty": "hard",
+  "available_sources": ["endpoint", "network", "dns", "files"],
+  "initial_alert_id": "ALT-008"
+}

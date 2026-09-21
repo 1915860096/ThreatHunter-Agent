@@ -1,0 +1,20 @@
+{
+  "case_id": "CASE-001",
+  "expected_verdict": "malicious",
+  "expected_iocs": [
+    {"indicator": "203.0.113.47", "indicator_type": "ipv4", "reputation": "malicious"},
+    {"indicator": "sync-update.example.net", "indicator_type": "domain", "reputation": "malicious"},
+    {"indicator": "41ed873f46200bd7de73ed506218a92672ab61e2c63a3f159193ef2d5a5ffc00", "indicator_type": "sha256", "reputation": "malicious"}
+  ],
+  "expected_techniques": [
+    {"technique_id": "T1059.001", "required": true},
+    {"technique_id": "T1105", "required": true}
+  ],
+  "key_evidence": ["EPE-001-003", "EPE-001-004", "EPE-001-008", "NET-001-003", "DNS-001-001", "FILE-001-001", "FILE-001-002"],
+  "acceptable_evidence": ["EPE-001-002", "EPE-001-005", "EPE-001-007", "EPE-001-012", "NET-001-004"],
+  "expected_investigation": {
+    "required_source_types": ["endpoint", "network", "dns", "files", "ioc"],
+    "optional_source_types": ["cti", "attack"]
+  },
+  "notes": "Office document spawns an encoded PowerShell command that resolves an external host, downloads a script into the user temporary directory and executes a dropped binary. The external host and the downloaded script hash both carry malicious reputation and match a synthetic CTI record."
+}

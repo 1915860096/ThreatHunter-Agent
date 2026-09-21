@@ -1,0 +1,8 @@
+{
+  "case_id": "CASE-001",
+  "name": "Encoded PowerShell Download & Execute",
+  "description": "Finance workstation reports an Office document spawning an encoded PowerShell command that resolved an external host and retrieved a script followed by a binary in the user temporary directory.",
+  "difficulty": "easy",
+  "available_sources": ["endpoint", "network", "dns", "files"],
+  "initial_alert_id": "ALT-001"
+}
