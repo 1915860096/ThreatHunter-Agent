@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: threathunter-postgres
+    environment:
+      POSTGRES_DB: threathunter
+      POSTGRES_USER: threathunter
+      POSTGRES_PASSWORD: threathunter
+    ports:
+      - "5432:5432"
+    volumes:
+      - threathunter_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U threathunter -d threathunter"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  threathunter_pgdata:

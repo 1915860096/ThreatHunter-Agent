@@ -1,0 +1,39 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+pytest_cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Runtime artifacts and local data
+logs/
+*.log
+evaluation/results/*
+!evaluation/results/.gitkeep
+datasets/cases/*
+!datasets/cases/.gitkeep
+datasets/knowledge/*
+!datasets/knowledge/.gitkeep
+
+# Docker
+pgdata/
