@@ -4,8 +4,9 @@
 
 ## 当前开发状态
 
-当前完成 **T01：项目骨架与工程环境初始化**、**T02：核心领域 Schema 与数据契约** 与
-**T03：安全调查 Benchmark V1**。
+当前完成 **T01：项目骨架与工程环境初始化**、**T02：核心领域 Schema 与数据契约**、
+**T03：安全调查 Benchmark V1**、**T04：确定性调查工具层** 与
+**T05：确定性调查编排运行时**。
 
 已经具备的能力：
 
@@ -19,10 +20,15 @@
   LangGraph / Agent / Evaluation 共同复用
 - 8 个 Case 的调查 Benchmark：合成但真实的 telemetry、共享知识库、Evaluation-only
   Ground Truth、数据集 Loader 与跨文件 Dataset Validation
+- 5 个确定性的只读调查工具（endpoint / network+DNS / file reputation / IOC
+  reputation / CTI+ATT&CK），通过 `ToolExecutor` 产出 T02 `ToolResult`
+- 确定性调查编排运行时：Alert → Plan → Step → PlannerDecision → ToolCall →
+  ToolResult → Step 完成 → `InvestigationRun`，含运行时状态、ID 生命周期、
+  ToolCall/Step 状态机、retry、budget、trajectory 与内存持久化
 
-尚未实现（属于后续 Task）：Agent 编排、LangGraph、Tool Calling、RAG、MCP、
-LLM 调用、真实安全工具、运行时 IOC / ATT&CK 分析（当前只有静态知识数据）、
-Evaluation metric 算法、数据库业务表、前端界面。
+尚未实现（属于后续 Task）：LLM 调用、LangGraph、Prompt、Evidence 提炼与 Evidence
+Store、Finding / Verdict / 置信度计算、RAG / Embedding / Vector DB、MCP、数据库持久化、
+Evaluation runner、前端界面。
 
 本仓库当前不存在任何 AI 依赖，也不包含任何 API Key。
 
@@ -168,6 +174,102 @@ python -m pytest
 .\.venv\Scripts\python.exe -c "from app.benchmark import validate_dataset; r = validate_dataset(); print(r.ok, r.issues)"
 ```
 
+## 调查工具层（T04）
+
+工具层是**确定性只读查询层**：只回答"telemetry / knowledge 里有什么"，不做安全结论推理。
+每个工具接收一个 Pydantic v2 输入 Schema，返回该工具自己的 typed payload。
+
+| Tool | 作用 | 数据来源 |
+| --- | --- | --- |
+| `search_endpoint_events` | 按事件类型、主机、用户、进程、命令行、路径、hash、时间窗查询端点 telemetry | `cases/<CASE>/telemetry/endpoint_events.json` |
+| `search_network_activity` | 同时查询 network 与 DNS telemetry（每源独立过滤、排序、limit、truncation） | `network_events.json` / `dns_events.json` |
+| `lookup_file_reputation` | 按 hash / path / file_name（+host）查询文件 telemetry，并用 SHA256 补充 reputation | `files.json` + `knowledge/ioc_reputation.json` |
+| `lookup_ioc_reputation` | 精确查询某个 indicator 的全部 reputation 记录（可限定 IOC 类型） | `knowledge/ioc_reputation.json` |
+| `search_cti` | 同时搜索 CTI 记录与 ATT&CK 技术，两类结果分开返回 | `knowledge/cti_records.json` / `attack_techniques.json` |
+
+关键语义：
+
+- `ToolResult` 是**工具的原始结构化返回**（`payload.model_dump(mode="json")`），不是
+  `Evidence`，也不是 `Finding`：工具不创建 evidence、不计算置信度、不给 verdict。
+- **0 结果是成功查询**：返回空列表与 `count=0`，不是异常；只有参数非法、tool 名未知或
+  数据集错误才产生 `success=False` 的 `ToolResult`。
+- **IOC unknown ≠ IOC absent**：知识库中存在 `reputation=unknown` 的记录时
+  `found=True` 并返回记录，只有知识库完全没有该 indicator 时才 `found=False`。
+- 工具层无法访问 Ground Truth：`app/tools` 不 import `GroundTruthLoader`，只读取
+  `datasets/cases` 与 `datasets/knowledge`（由测试强制）。
+- 查询语义固定：ID / SHA256 精确匹配，IP 归一化精确匹配，文本字段大小写无关精确匹配，
+  `command_line_contains` / `query_contains` 与 CTI 自由文本为大小写无关子串匹配，
+  时间窗两端闭区间；不同 filter 之间 AND，同字段列表内 OR；telemetry 按
+  `timestamp ASC, record ID ASC` 排序。
+
+```python
+from app.schemas.tools import ToolCall
+from app.tools import EndpointSearchInput, ToolExecutor, search_endpoint_events
+
+payload = search_endpoint_events(
+    EndpointSearchInput(case_id="CASE-001", process_name="powershell.exe")
+)  # payload.count / payload.items / payload.truncated
+
+call = ToolCall(
+    tool_call_id="TC-001", incident_id="INC-001", step_id="STEP-001",
+    tool_name="search_endpoint_events",
+    arguments={"case_id": "CASE-001", "event_types": ["process_creation"]},
+    status="requested", requested_at="2026-03-02T09:20:00Z",
+)
+result = ToolExecutor().execute(call)   # T02 ToolResult，data 为 JSON dict
+```
+
+`ToolExecutor` 只负责执行与计时：它不修改传入的 `ToolCall`，也不管理
+`requested -> running -> succeeded/failed` 生命周期（由未来编排层负责）。
+
+## 调查编排运行时（T05）
+
+`app/runtime` 是一个 **framework-agnostic 的确定性运行时**（无 LLM、无 LangGraph），
+它把一次告警推进为一份可复现的调查记录：
+
+```
+SecurityAlert → InvestigationPlan → InvestigationStep → PlannerDecision
+→ ToolCall → ToolExecutor → ToolResult → Step 完成 → InvestigationRun
+```
+
+已支持的能力：
+
+- **Planner / Runtime 解耦**：`InvestigationPlanner` 协议 + `DeterministicPlanner`；
+  planner 只能返回 `PlannerDecision`，不能执行工具、不能访问 loader 或 Ground Truth，
+  只通过 `PlanningContext`（alert / plan / current step / 历史 tool calls 与 results /
+  剩余预算）观察上下文。LangGraph 未来只能作为 adapter。
+- **状态机**：Step `pending → running → completed|failed`（不允许 terminal 回退）；
+  ToolCall `requested → running → succeeded|failed`，由 runtime 负责。
+- **ID 归属**：`INC-*`/`TC-*` 由 runtime 生成，`PLAN-*`/`STEP-*` 由 planner 生成，
+  `ALT-*` 来自数据集，`TR-*` 仍由 T04 executor 生成。
+- **Retry**：失败结果按 `RetryPolicy` 判定是否重试；重试总是创建**新的** `ToolCall`，
+  旧 call 保持 failed；invalid arguments / unknown tool 默认不重试。
+- **Budget**：`max_steps` / `max_tool_calls` / `max_tool_calls_per_step` / `max_failures`，
+  超限时 `RuntimeStatus.budget_exhausted` 且不再执行新 tool。
+- **Trajectory**：append-only，`sequence` 是唯一权威顺序；details 只存标量（敏感键、
+  payload 容器、traceback 一律丢弃），完整 `ToolResult` 只通过 `tool_result_id` 引用。
+- **T06 handoff**：`InvestigationRun` 保留全部 `ToolCall` + `ToolResult`（含 payload）与
+  trajectory，供 T06 构建 `ToolCall → ToolResult → Evidence → EvidenceProvenance`。
+  T05 自身不创建 Evidence。
+
+```python
+from app.agents import DeterministicPlanner
+from app.benchmark import BenchmarkLoader
+from app.runtime import InvestigationRuntime
+from app.tools import ToolExecutor
+
+loader = BenchmarkLoader()
+run = InvestigationRuntime(
+    DeterministicPlanner(case_id="CASE-001"),
+    executor=ToolExecutor(loader=loader),
+).run(loader.load_initial_alert("CASE-001"))
+
+run.status, run.stop_reason, run.tool_calls, run.trajectory
+```
+
+仍**未实现**：LLM / Prompt、LangGraph、Evidence 提炼、RAG / Embedding / Vector DB、
+MCP、数据库持久化（当前只有内存 store）、Evaluation runner。
+
 ## 启动 FastAPI
 
 ```powershell
@@ -214,9 +316,10 @@ docker compose down
 ```text
 app/            应用代码（main.py 为 FastAPI 入口，core/config.py 为配置）
   benchmark/    Benchmark 数据集 Schema、Loader 与 Dataset Validation
-  agents/       Agent 相关代码（后续 Task）
+  runtime/      确定性调查编排运行时（contracts / budget / retry / trajectory / store / runtime）
+  agents/       Planner（协议 + DeterministicPlanner）
   graph/        编排图（后续 Task）
-  tools/        安全工具集成（后续 Task）
+  tools/        确定性调查工具层（contracts / 5 个工具 / executor）
   rag/          检索增强（后续 Task）
   mcp/          MCP 集成（后续 Task）
   evidence/     证据模型与推理（后续 Task）
@@ -227,7 +330,7 @@ datasets/       本地数据集（cases 告警样本与 telemetry、knowledge �
 evaluation/     评测脚本与结果
 frontend/       前端入口（后续 Task）
 scripts/        运维 / 辅助脚本
-tests/          pytest 测试（tests/schemas 领域契约、tests/benchmark 数据集测试）
+tests/          pytest 测试（tests/schemas 领域契约、tests/benchmark 数据集、tests/tools 工具层、tests/runtime 运行时）
 ```
 
 ## Roadmap
@@ -235,8 +338,10 @@ tests/          pytest 测试（tests/schemas 领域契约、tests/benchmark 数
 - T01 项目骨架与工程环境初始化（已完成）
 - T02 核心领域 Schema 与数据契约（已完成）
 - T03 安全调查 Benchmark V1（已完成：8 Case / telemetry / 共享知识 / Ground Truth / Loader / Dataset Validation）
-- 后续：告警数据模型与持久化
-- 后续：Agent 编排（LangGraph）与 Tool Calling
+- T04 确定性调查工具层（已完成：5 个 Tool / 10 个 Contract / ToolExecutor / Ground Truth isolation）
+- T05 确定性调查编排运行时（已完成：Runtime / Planner / 状态机 / retry / budget / trajectory / T06 handoff）
+- 后续：Tool Call 编排与 Agent（LangGraph）
+- 后续：Evidence 提炼与 Evidence Store
 - 后续：RAG 与 MCP 集成
 - 后续：证据化推理与事件调查报告生成
 - 后续：评测体系与前端界面
