@@ -6,7 +6,8 @@
 
 当前完成 **T01：项目骨架与工程环境初始化**、**T02：核心领域 Schema 与数据契约**、
 **T03：安全调查 Benchmark V1**、**T04：确定性调查工具层**、
-**T05：确定性调查编排运行时** 与 **T06：证据提取与调查摘要**。
+**T05：确定性调查编排运行时**、**T06：证据提取与调查摘要** 与
+**T07：LLM 规划器与动态工具循环**、**T08：证据化 Finding / Verdict / 最终报告**。
 
 已经具备的能力：
 
@@ -28,10 +29,17 @@
 - 证据提取与调查摘要：从 `InvestigationRun` 提取带 provenance 的规范化 Evidence
   （多来源去重）、生成不含 Verdict 的 `InvestigationSummary`，并提供端到端
   Demo CLI（`python -m app.demo.investigation --case CASE-001`）
+- LLM 规划器（T07）：OpenAI-compatible Chat Completions 客户端、只读 Agent Context
+  Builder、受控模型请求预算、决策校验/一次修复、Agent Decision Trace，以及
+  scripted / live 双模式 Demo —— 工具仍只由 T05 Runtime 与 T04 ToolExecutor 执行
+- 证据化结论（T08）：确定性的 Finding 规则引擎、可解释 Verdict 引擎、最终报告
+  （JSON / Markdown）与离线 Replay CLI —— 结论只引用真实 Evidence，可回溯到
+  TC/TR 与原始记录
 
-尚未实现（属于后续 Task）：LLM 调用、LangGraph、Prompt、Evidence Store 持久化
-（T06 的提取结果只存在于内存与 Demo 输出文件）、Finding / Verdict / 置信度判定、
-RAG / Embedding / Vector DB、MCP、数据库持久化、Evaluation runner、前端界面。
+尚未实现（属于后续 Task）：LangGraph / LangChain 编排、Prompt 深度调优与
+few-shot 设计、Evidence Store 持久化（T06 的提取结果只存在于内存与 Demo 输出文件）、
+Finding / Verdict / 置信度判定、RAG / Embedding / Vector DB、MCP、数据库持久化、
+Evaluation runner、前端界面。
 
 本仓库当前不存在任何 AI 依赖，也不包含任何 API Key。
 
@@ -65,6 +73,8 @@ Copy-Item .env.example .env
 | `LLM_PROVIDER` | `deepseek` | 预留的模型提供方配置 |
 | `LLM_MODEL` | `deepseek-chat` | 预留的模型名称配置 |
 | `LLM_API_KEY` | 空 | 必须由本机环境或 `.env` 提供，仓库中不硬编码 |
+| `LLM_BASE_URL` | 空 | OpenAI-compatible 端点（如 `https://host/v1`）；live 模式必需 |
+| `LLM_TIMEOUT_SECONDS` | `30` | 单次模型请求超时 |
 
 ## 领域 Schema
 
@@ -309,6 +319,90 @@ python -m app.demo.investigation --case CASE-001 --output-dir outputs/demo
 输出 JSON 含 `investigation_run`、`evidence_extraction`、`investigation_summary` 三部分，
 文件名为 `<CASE>-<INCIDENT>-investigation.json`，默认目录 `outputs/` 已在 `.gitignore` 中。
 
+## LLM 规划器与动态工具循环（T07）
+
+`app/agents` 在冻结的 T05 Planner 协议上新增模型驱动的规划器：
+
+```
+Alert → LLMPlanner → T05 InvestigationRuntime → T04 ToolExecutor → ToolResult
+      → AgentContextBuilder → 下一次 LLMPlanner 决策
+      →（调查结束后）T06 EvidenceExtractor → InvestigationSummary
+```
+
+要点：
+
+- `LLMPlanner` 复用确定性的**五阶段调查骨架**（Step 由代码固定，模型不能增删/重排），
+  模型只负责每个 Step 内的工具选择、查询参数与完成判断，且只能返回 T05 既有的
+  `call_tool` / `complete_step` / `fail_step` 三种决策。
+- **Step → allowed_tools 白名单**逐条强制；模型返回白名单外的工具、未知参数、
+  非法参数值或伪造的 `case_id` 都会被拒绝（先给一次修复请求，仍失败则抛
+  `PlannerError`，由 T05 记为 `planner_failed`）；`case_id` 只取自可信运行上下文。
+  模型永远不能直接调用 `ToolExecutor`。
+- `AgentContextBuilder` 只读、可 JSON 序列化：alert 要点、当前 Step 目标与参数约束、
+  历史 ToolCall、五种工具各自的**精简事实视图**、剩余预算、已查询指标、最近失败与
+  零结果。默认上限 12 条历史结果 / 每条 10 条记录 / 整个上下文 20,000 字符，
+  截断确定性且明确标记 `truncated`；API Key、数据集路径、Ground Truth 与完整
+  ToolResult 永不进入上下文。
+- `LLMBudget` 独立于工具预算：默认 24 次模型请求/run、每决策最多 1 次修复、
+  30 秒超时；请求前检查，耗尽时抛受控异常（T05 只报 `planner_failed`，
+  具体原因保留在 `LLMPlanner.last_failure_reason`）。
+- `AgentDecisionTrace` 记录每次请求：decision_id、request_sequence、step_id、
+  context fingerprint、action、selected tool、validation_status、repair_attempt、
+  latency、token usage（供应商未提供则为 `None`）、failure_kind、脱敏 rationale、
+  模型与模式；运行后按"同一步骤内第 n 次决策 ↔ 第 n 个 ToolCall"确定性关联
+  `tool_call_id`（不使用时间戳）。
+- 工具返回内容是**不可信数据**，在提示中与系统规则分层，只作为数据处理；
+  越权工具、越权 case_id 与"忽略此前指令"类文本都无法绕过白名单、参数校验或预算。
+
+```powershell
+# scripted：确定性规则式客户端，不发网络请求，用于工程集成验证
+python -m app.demo.llm_investigation --case CASE-001 --mode scripted
+
+# live：需要 LLM_BASE_URL / LLM_API_KEY / LLM_MODEL，缺配置时直接失败（不回退）
+python -m app.demo.llm_investigation --case CASE-001 --mode live
+```
+
+输出 JSON 含 `investigation_run`、`agent_decision_trace`、`evidence_extraction`、
+`investigation_summary` 与 `llm_usage`，文件名为
+`<CASE>-<INCIDENT>-llm-investigation.json`。
+**注**：scripted 模式不是语言模型、也不代表模型能力评测；live 模式在本仓库尚未
+用真实 API 验证（无可用凭据），因此不宣称真实 LLM Agent 已通过端到端测试。
+
+## 证据化 Finding / Verdict / 最终报告（T08）
+
+`app/findings` + `app/verdict` + `app/reports` 把已有的 Run / Evidence / Summary
+转换为可审计结论（**不再调用任何模型**，完全离线、确定性）：
+
+```
+InvestigationRun + EvidenceExtractionResult + InvestigationSummary
+  → FindingEngine（5 类规则）→ VerdictEngine（4 条判定规则）→ FinalReportBuilder
+  → final-report.json / final-report.md
+```
+
+要点：
+
+- **Finding 规则**只读结构化字段（不靠摘要文本关键词）：可疑进程执行（文档进程启动脚本解释器、
+  encoded/hidden 参数）、可疑文件产物（**仅按本文件自身 SHA256** 关联信誉，不嫁接同主机
+  其他文件的信誉）、可疑外联（脚本解释器的外部目的地；内网流量与普通外联不会被当成恶意）、
+  恶意指标命中（**必须同时存在实际观测的指标与同一指标的恶意信誉**，知识库单边命中不生成
+  Finding）、跨来源关联（DNS 解析 IP↔外联目标、脚本写文件↔磁盘记录；CTI/ATT&CK 只作知识支持）。
+- **Verdict 规则**显式且可解释：`malicious`（恶意指标 + 与之关联的行为 Finding 的跨来源门槛）、
+  `suspicious`（仅有恶意指标无关联行为，或存在 ≥medium Finding）、`benign`（必须是
+  **正向白名单/良性信誉命中**且无 ≥medium Finding 且调查完成）、`inconclusive`（其余情况）。
+  **未完成调查**会保留"覆盖不完整"的限制并把置信度封顶为 medium；未知信誉、零命中、
+  无工具结果**永不**判为 benign。置信度只输出 low/medium/high，不输出未校准概率。
+- **报告**保留完整审计链：finding → evidence → ToolCall/ToolResult → raw_ref，
+  并在 methodology 中写明本次调查的规划模式（live LLM / scripted 规则式 / 确定性规划），
+  避免把 LLM 驱动的调查误述为"没有使用 LLM"。Markdown 对来自日志、文件名与 CTI 的
+  不可信文本做转义与截断，防止结构注入。
+
+```powershell
+# 离线 Replay：读取已有调查 JSON，重建 Finding/Verdict 并输出报告（不跑 Agent、不调模型）
+python -m app.demo.final_report --input outputs/demo/CASE-001-INC-000001-llm-investigation.json --output-dir outputs/reports
+```
+
+输出 `final-report.json` 与 `final-report.md`（9 个章节，含证据索引与决策审计表）。
+
 ## 启动 FastAPI
 
 ```powershell
@@ -356,10 +450,13 @@ docker compose down
 app/            应用代码（main.py 为 FastAPI 入口，core/config.py 为配置）
   benchmark/    Benchmark 数据集 Schema、Loader 与 Dataset Validation
   runtime/      确定性调查编排运行时（contracts / budget / retry / trajectory / store / runtime）
-  agents/       Planner（协议 + DeterministicPlanner）
+  agents/       Planner（协议 / DeterministicPlanner / LLMPlanner / context / trace / client / budget）
   evidence/     证据提取（contracts / provenance / dedup / extractor）
   reporting/    调查摘要（contracts / summary）
-  demo/         端到端演示 CLI（investigation）
+  findings/     证据化 Finding 规则（contracts / index / engine）
+  verdict/      可解释 Verdict 规则（contracts / engine）
+  reports/      最终报告（contracts / builder / markdown）
+  demo/         端到端演示 CLI（investigation、llm_investigation、final_report）
   graph/        编排图（后续 Task）
   tools/        确定性调查工具层（contracts / 5 个工具 / executor）
   rag/          检索增强（后续 Task）
@@ -383,6 +480,9 @@ tests/          pytest 测试（schemas 领域契约、benchmark 数据集、too
 - T04 确定性调查工具层（已完成：5 个 Tool / 10 个 Contract / ToolExecutor / Ground Truth isolation）
 - T05 确定性调查编排运行时（已完成：Runtime / Planner / 状态机 / retry / budget / trajectory / T06 handoff）
 - T06 证据提取与调查摘要（已完成：DeterministicEvidenceExtractor / 多来源去重 / InvestigationSummary / Demo CLI）
+- T07 LLM 规划器与动态工具循环（已完成：LLMPlanner / AgentContextBuilder / LLMClient / 预算 / 决策轨迹 / scripted+live Demo）
+- T08 证据化 Finding + Verdict + 最终报告（已完成：5 类 Finding 规则 / 4 条 Verdict 规则 / JSON+Markdown 报告 / 离线 Replay CLI）
+- 后续：LangGraph 编排、Evidence Store、Finding / Verdict、RAG / MCP、Evaluation、前端
 - 后续：Tool Call 编排与 Agent（LangGraph）
 - 后续：Evidence 提炼与 Evidence Store
 - 后续：RAG 与 MCP 集成

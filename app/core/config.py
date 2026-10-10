@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     llm_provider: str = "deepseek"
     llm_model: str = "deepseek-chat"
     llm_api_key: str | None = None
+    llm_base_url: str = ""
+    llm_timeout_seconds: float = 30.0
 
 
 @lru_cache
