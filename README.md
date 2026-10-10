@@ -5,8 +5,8 @@
 ## 当前开发状态
 
 当前完成 **T01：项目骨架与工程环境初始化**、**T02：核心领域 Schema 与数据契约**、
-**T03：安全调查 Benchmark V1**、**T04：确定性调查工具层** 与
-**T05：确定性调查编排运行时**。
+**T03：安全调查 Benchmark V1**、**T04：确定性调查工具层**、
+**T05：确定性调查编排运行时** 与 **T06：证据提取与调查摘要**。
 
 已经具备的能力：
 
@@ -25,10 +25,13 @@
 - 确定性调查编排运行时：Alert → Plan → Step → PlannerDecision → ToolCall →
   ToolResult → Step 完成 → `InvestigationRun`，含运行时状态、ID 生命周期、
   ToolCall/Step 状态机、retry、budget、trajectory 与内存持久化
+- 证据提取与调查摘要：从 `InvestigationRun` 提取带 provenance 的规范化 Evidence
+  （多来源去重）、生成不含 Verdict 的 `InvestigationSummary`，并提供端到端
+  Demo CLI（`python -m app.demo.investigation --case CASE-001`）
 
-尚未实现（属于后续 Task）：LLM 调用、LangGraph、Prompt、Evidence 提炼与 Evidence
-Store、Finding / Verdict / 置信度计算、RAG / Embedding / Vector DB、MCP、数据库持久化、
-Evaluation runner、前端界面。
+尚未实现（属于后续 Task）：LLM 调用、LangGraph、Prompt、Evidence Store 持久化
+（T06 的提取结果只存在于内存与 Demo 输出文件）、Finding / Verdict / 置信度判定、
+RAG / Embedding / Vector DB、MCP、数据库持久化、Evaluation runner、前端界面。
 
 本仓库当前不存在任何 AI 依赖，也不包含任何 API Key。
 
@@ -270,6 +273,42 @@ run.status, run.stop_reason, run.tool_calls, run.trajectory
 仍**未实现**：LLM / Prompt、LangGraph、Evidence 提炼、RAG / Embedding / Vector DB、
 MCP、数据库持久化（当前只有内存 store）、Evaluation runner。
 
+## 证据提取与调查摘要（T06）
+
+`app/evidence` 把一次 `InvestigationRun` 转成规范化、带 provenance 的 `Evidence`；
+`app/reporting` 生成 `InvestigationSummary`；`app/demo` 提供端到端入口。
+
+```
+SecurityAlert → T05 Runtime → T04 Tools → Evidence → Investigation Summary
+```
+
+关键语义：
+
+- 只从**成功的** ToolResult 提取事实：工具失败不产生证据；查询成功但命中 0 条同样不产生
+  证据，而是记为 information gap —— “没有数据”≠“良性”。
+- 五个工具的多集合分别映射（network / DNS、files / reputation、CTI / ATT&CK 互不混淆）；
+  IOC/CTI/ATT&CK 一律标记为 `knowledge-reference`，不会被当作已证实的攻击行为。
+- **case-linked 判定**：T04 会忽略对某集合不适用的过滤条件（例如 indicator 查询会返回整套
+  ATT&CK），因此知识记录只有在与本案 indicator、alert 字段或已关联 CTI 报告存在明确关联时
+  才标记 `case-linked`；其余标记 `unlinked-knowledge`，只作为引用并在摘要中列为信息缺口。
+- **去重**：telemetry/knowledge 用稳定记录 ID，IOC reputation 用规范化内容指纹
+  （indicator 类型 + indicator + source + reputation + confidence，绝不合并不同 source）；
+  同一原始记录被多次命中时只保留一条 Evidence，但保留全部来源引用。
+- **Provenance**：每条 Evidence 带 `tool_call_id` / `tool_result_id` / `raw_ref`
+  （如 `CASE-001/telemetry/dns_events.json#DNS-001-001`、`knowledge/cti_records.json#CTI-001`）；
+  T02 只支持单一来源，因此多来源索引放在 T06 的 `EvidenceExtractionResult.sources`。
+- **Evidence ID** 使用 T02 的 `EV-` 前缀（如 `EV-000001`），按确定性提取顺序编号。
+- **摘要**不产生 Verdict / 严重度 / 置信度：observations 只陈述观测到的活动与知识引用，
+  缺口与局限单独列出。
+
+```powershell
+# 端到端演示（真实 CASE-001，输出精简摘要 + 机器可读 JSON）
+python -m app.demo.investigation --case CASE-001 --output-dir outputs/demo
+```
+
+输出 JSON 含 `investigation_run`、`evidence_extraction`、`investigation_summary` 三部分，
+文件名为 `<CASE>-<INCIDENT>-investigation.json`，默认目录 `outputs/` 已在 `.gitignore` 中。
+
 ## 启动 FastAPI
 
 ```powershell
@@ -318,6 +357,9 @@ app/            应用代码（main.py 为 FastAPI 入口，core/config.py 为�
   benchmark/    Benchmark 数据集 Schema、Loader 与 Dataset Validation
   runtime/      确定性调查编排运行时（contracts / budget / retry / trajectory / store / runtime）
   agents/       Planner（协议 + DeterministicPlanner）
+  evidence/     证据提取（contracts / provenance / dedup / extractor）
+  reporting/    调查摘要（contracts / summary）
+  demo/         端到端演示 CLI（investigation）
   graph/        编排图（后续 Task）
   tools/        确定性调查工具层（contracts / 5 个工具 / executor）
   rag/          检索增强（后续 Task）
@@ -330,7 +372,7 @@ datasets/       本地数据集（cases 告警样本与 telemetry、knowledge �
 evaluation/     评测脚本与结果
 frontend/       前端入口（后续 Task）
 scripts/        运维 / 辅助脚本
-tests/          pytest 测试（tests/schemas 领域契约、tests/benchmark 数据集、tests/tools 工具层、tests/runtime 运行时）
+tests/          pytest 测试（schemas 领域契约、benchmark 数据集、tools 工具层、runtime 运行时、evidence/reporting/demo T06）
 ```
 
 ## Roadmap
@@ -340,6 +382,7 @@ tests/          pytest 测试（tests/schemas 领域契约、tests/benchmark 数
 - T03 安全调查 Benchmark V1（已完成：8 Case / telemetry / 共享知识 / Ground Truth / Loader / Dataset Validation）
 - T04 确定性调查工具层（已完成：5 个 Tool / 10 个 Contract / ToolExecutor / Ground Truth isolation）
 - T05 确定性调查编排运行时（已完成：Runtime / Planner / 状态机 / retry / budget / trajectory / T06 handoff）
+- T06 证据提取与调查摘要（已完成：DeterministicEvidenceExtractor / 多来源去重 / InvestigationSummary / Demo CLI）
 - 后续：Tool Call 编排与 Agent（LangGraph）
 - 后续：Evidence 提炼与 Evidence Store
 - 后续：RAG 与 MCP 集成

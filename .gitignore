@@ -28,6 +28,7 @@ Thumbs.db
 # Runtime artifacts and local data
 logs/
 *.log
+outputs/
 evaluation/results/*
 !evaluation/results/.gitkeep
 
